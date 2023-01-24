@@ -95,9 +95,6 @@ public class HardFlowPublisher<T> {
                         log.info("Processing item: " + task.toString() + " ...");
                         subscriber.onNext(task);
                     }
-//                    else {
-//                        log.info("Item is null: " + null + " ...");
-//                    }
                 });
             }
             subscriber.onComplete();

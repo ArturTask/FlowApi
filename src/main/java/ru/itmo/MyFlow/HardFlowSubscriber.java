@@ -26,7 +26,6 @@ public class HardFlowSubscriber<T> {
         requestItems();
     }
 
-    // randomly continue or cancel 50%
     public void onNext(T item) {
         if (consumer!=null){
             consumer.accept(item);

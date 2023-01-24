@@ -1,11 +1,11 @@
-package ru.itmo.EasyFlow;
+package ru.itmo.ProjectReactor;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class Message {
+public class Topic {
 
-    private String text;
+    private String name;
 }

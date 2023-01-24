@@ -1,15 +1,18 @@
-package ru.itmo.EasyFlow;
+package ru.itmo.ProjectReactor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import ru.itmo.EasyFlow.Topic;
-import java.util.concurrent.Flow;
+import org.reactivestreams.*;
+
+//import java.util.concurrent.Flow;
+
+//import java.util.concurrent.Flow;
 
 @Slf4j
 @Getter
-public class Subscriber implements Flow.Subscriber<ru.itmo.EasyFlow.Topic> {
+public class Subscriber implements org.reactivestreams.Subscriber<Topic> {
 
     private final String name;
-    private Flow.Subscription subscription;
+    private Subscription subscription;
 
 
     public Subscriber( String name, Topic...topics) {
@@ -24,13 +27,13 @@ public class Subscriber implements Flow.Subscriber<ru.itmo.EasyFlow.Topic> {
     }
 
     @Override
-    public void onSubscribe(Flow.Subscription subscription) {
+    public void onSubscribe(Subscription s) {
         this.subscription = subscription;
         subscription.request(1);
     }
 
     @Override
-    public void onNext(ru.itmo.EasyFlow.Topic item) {
+    public void onNext(Topic item) {
         
         log.info(Thread.currentThread().getName() + " | " + this.getName() + " Received Topic " + item.getName());
         // 3000 mills delay to simulate slow subscriber with 50% variety

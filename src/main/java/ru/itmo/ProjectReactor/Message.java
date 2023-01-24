@@ -1,4 +1,4 @@
-package ru.itmo.EasyFlow;
+package ru.itmo.ProjectReactor;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,53 +1,80 @@
 package ru.itmo;
 
 import lombok.extern.slf4j.Slf4j;
+import ru.itmo.EasyFlow.Publisher;
+import ru.itmo.EasyFlow.Subscriber;
+import ru.itmo.EasyFlow.Topic;
+import ru.itmo.FlowImpl.FlowPublisher;
+import ru.itmo.FlowImpl.FlowSubscriber;
 import ru.itmo.MyFlow.HardFlowPublisher;
 import ru.itmo.MyFlow.HardFlowSubscriber;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.*;
 
 @Slf4j
 public class Main {
 
-    static ExecutorService service = Executors.newFixedThreadPool(5);
-    static ScheduledExecutorService canceller = Executors.newScheduledThreadPool(5);
-
-    public static <T> Future<T> tryExecute(Callable<T> c, long timeoutMS){
-        final Future<T> future = service.submit(c);
-        canceller.schedule(() -> {
-            future.cancel(true);
-            return null;
-        }, timeoutMS, TimeUnit.MILLISECONDS);
-        return future;
-
-    }
-
-    private static final CompletableFuture terminated = new CompletableFuture<>();
-
-
 
     public static void main(String[] args) throws InterruptedException {
 
-//        SubmissionPublisher<String> stringSubmissionPublisher = new SubmissionPublisher<>();
-//        stringSubmissionPublisher.offer("",(subscriber, s) -> {
-//            subscriber.onError(new RuntimeException("String " + s
-//                    + " droped because of backpressure"));
-//            return true;
-//        } );
-//
-//        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-//        executor.scheduleWithFixedDelay(() -> {
-//
-//        }, 1, 1, TimeUnit.MILLISECONDS);
+// Flow api:
+//        trySimpleFlowApiImpl();
+//        tryCustomizableFlowApi();
+//        tryMainFlowApi();
 
 
-        SubmissionPublisher<Integer> publisher = new SubmissionPublisher<>();
-        publisher.offer(1, (subscriber1, integer) -> {
-            subscriber1.onError(new Exception());
-            return true;
-        });
 
+        Thread.sleep(100 * 1000);
+    }
 
+    private static void tryMainFlowApi() {
+        List<Topic> topics = List.of(new Topic("LOL"), new Topic("KEKE"),
+                new Topic("BANANA"), new Topic("MELON"), new Topic("POOP"));
+
+        List<Publisher> publishers = List.of(new Publisher(topics.get(0)), new Publisher(topics.get(1)),
+                new Publisher(topics.get(2)), new Publisher(topics.get(3)), new Publisher(topics.get(4)));
+
+        List<Subscriber> subscribers = new LinkedList<>();
+
+        for (int i = 0; i< 1000; i++){
+            Publisher randomPublisher = publishers.get((int) (Math.random() * 5));
+            Subscriber subscriber = new Subscriber(String.valueOf(i), randomPublisher.getTopic());
+            randomPublisher.subscribe(subscriber);
+            subscribers.add(subscriber);
+        }
+
+        int index = 0;
+        Publisher publisher = publishers.get(index);
+        publisher.tryBufferOnBackpressure(topics.get(index));
+
+        // drop on pressure
+        for (int i = 0; i < 500; i++){
+            Topic topic = new Topic(String.valueOf(i));
+            publisher.tryDropOnBackpressure(topic, 1, TimeUnit.NANOSECONDS, (s, t) -> {
+                s.onError(new Exception("Can't handle backpressure... Dropping value " + t.getName()));
+                return true;
+            });
+
+        }
+
+        // try to buffer
+        for (int i = 0; i < 500; i++){
+            Topic topic = new Topic(String.valueOf(i));
+            publisher.tryBufferOnBackpressure(topic);
+
+        }
+    }
+
+    private static void trySimpleFlowApiImpl() {
+        FlowPublisher<Integer> myPublisher = new FlowPublisher<>();
+
+        FlowSubscriber<Integer> subscriber = new FlowSubscriber<>("A");
+        myPublisher.subscribe(subscriber);
+    }
+
+    private static void tryCustomizableFlowApi() {
         HardFlowPublisher<Integer> hardFlowPublisher = new HardFlowPublisher<Integer>();
         hardFlowPublisher.doOnNext(integer -> {
             if(integer!=null) {
@@ -64,7 +91,6 @@ public class Main {
                     log.info("WOW now its " + some);
                 }
             }
-
         });
         HardFlowSubscriber<Integer> hardFlowSubscriber = new HardFlowSubscriber<>("AAAAA");
         HardFlowSubscriber<Integer> hardFlowSubscriber2 = new HardFlowSubscriber<>("bBB");
@@ -76,37 +102,8 @@ public class Main {
         tasks.add(4);
         tasks.add(5);
         hardFlowPublisher.setTasks(tasks);
-//                .setTimeout(Duration.ofSeconds(1));
         hardFlowPublisher.subscribe(hardFlowSubscriber);
         hardFlowPublisher.subscribe(hardFlowSubscriber2);
-
-
-//        Future<Boolean> booleanFuture = tryExecute(() -> {
-//            System.out.println("da");
-//            Thread.sleep(10000);
-//            System.out.println("net");
-//            return true;
-//        }, 1000);
-//
-//        Future<Integer> integerFuture = tryExecute(new Callable<Integer>() {
-//            @Override
-//            public Integer call() throws Exception {
-//                return 9*7;
-//            }
-//        }, 1000);
-//
-//        service.shutdown();
-//        canceller.shutdown();
-
-
-//        FlowPublisher<Integer> myPublisher = new FlowPublisher<>();
-//
-//        FlowSubscriber<String> subscriber = new FlowSubscriber<>("A");
-//        myPublisher.subscribe(subscriber);
-
-        System.out.println();
-
-
     }
 
 }
