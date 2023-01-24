@@ -15,8 +15,9 @@ import java.util.function.Consumer;
 
 @Getter
 @Slf4j
-public class FlowPublisher implements Flow.Publisher<Object> {
+public class FlowPublisher<T> implements Flow.Publisher<Object> {
 
+    private Consumer<T> consumer;
     @Getter(value = AccessLevel.NONE)
     private ExecutorService executor;
     private List<Flow.Subscription> subscriptions = Collections.synchronizedList(new LinkedList<>());
@@ -59,22 +60,22 @@ public class FlowPublisher implements Flow.Publisher<Object> {
         }
     }
 
-//    public void doOnNext(Consumer<Flow.Subscriber<Integer>> consumer){
-//        for (Flow.Subscription s: this.subscriptions) {
-//            FlowSubscription currSubscriprion = (FlowSubscription) s;
-//            FlowSubscriber<Integer> subscriber = (FlowSubscriber<Integer>) currSubscriprion.getSubscriber();
-//            subscriber.doOnNext();
-////            consumer.accept();
-//        }
-//    }
+    public void doOnNext(Consumer<T> consumer){
+        for (Flow.Subscription s: this.subscriptions) {
+            FlowSubscription currSubscriprion = (FlowSubscription) s;
+            FlowSubscriber<T> subscriber = (FlowSubscriber<T>) currSubscriprion.getSubscriber();
+//            subscriber.doOnNext(consumer);
+        }
+    }
 
     @Getter
-    private class FlowSubscription implements Flow.Subscription {
+    public class FlowSubscription implements Flow.Subscription {
+
 
         private final ExecutorService executor;
         private final Flow.Subscriber<Integer> subscriber;
         private final AtomicInteger value = new AtomicInteger(22);
-        private AtomicBoolean isCanceled = new AtomicBoolean(false);
+        private final AtomicBoolean isCanceled;
 
         public FlowSubscription(Flow.Subscriber<Integer> subscriber, ExecutorService executor) {
             this.subscriber = subscriber;

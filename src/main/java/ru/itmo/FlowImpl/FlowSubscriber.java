@@ -31,7 +31,6 @@ public class FlowSubscriber<T> implements Flow.Subscriber<T> {
     @Override
     public void onNext(T item) {
         if (item != null) {
-
             synchronized (this) {
                 // emulation of work
                 log.info(this.name + " is pretending to work with " + item.toString());
