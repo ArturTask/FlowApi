@@ -2,39 +2,74 @@ package ru.itmo.ProjectReactor;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.concurrent.Flow;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiPredicate;
+import java.time.Duration;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @Getter
+@Slf4j
 public class Publisher {
 
     private final Topic topic;
     @Getter(value = AccessLevel.NONE)
-    private Mono<Topic> topicMono;
+    private Flux<Topic> topicFlux;
 
     public Publisher(Topic t) {
         this.topic = t;
-        this.topicMono = Mono.just(t);
+        this.topicFlux = Flux.just(t);
+        this.topicFlux = this.topicFlux.onBackpressureDrop();
+    }
+
+    public Publisher setTopics(List<Topic> topics){
+        topicFlux = Flux.fromIterable(topics);
+        return this;
     }
 
     public Publisher subscribe(Subscriber subscriber){
-        topicMono.subscribe( subscriber);
+        topicFlux.subscribe(subscriber);
+        return this;
+    }
+    public Publisher subscribe(Consumer<? super Topic> consumer){
+        topicFlux.subscribe(consumer);
         return this;
     }
 
-    public Publisher tryDropOnBackpressure (Topic topic, long timeout, TimeUnit unit, BiPredicate<Flow.Subscriber<? super Topic>,? super Topic> onDrop){
-//        submissionPublisher.offer(topic, timeout, unit, onDrop);
-        topicMono.offer(topic, onDrop);
+    public Publisher setTimeout(Duration timeout){
+        topicFlux = topicFlux.timeout(timeout);
         return this;
     }
 
-    public Publisher tryBufferOnBackpressure(Topic topic){
-        topicMono.submit(topic);
+    public Publisher setDelay(Duration duration){
+        topicFlux = topicFlux.delayElements(duration);
+        return this;
+    }
+
+    public Publisher onErrorResume(Function<? super Throwable, ? extends Flux<? extends Topic>> fallback){
+        topicFlux = topicFlux.onErrorResume(fallback);
+        return this;
+    }
+    public Publisher onErrorReturn(Topic topic){
+        topicFlux = topicFlux.onErrorReturn(topic);
+        return this;
+    }
+
+    public Publisher setStrategyLatest(){
+        topicFlux = topicFlux.onBackpressureLatest();
+        return this;
+    }
+
+    public Publisher setStrategyDrop(Consumer<? super Topic> onDropped){
+        topicFlux = topicFlux.onBackpressureDrop(onDropped);
+        return this;
+    }
+
+    public Publisher setStrategyBuffer(int bufferSize){
+        topicFlux = topicFlux.onBackpressureBuffer(bufferSize);
         return this;
     }
 
@@ -42,4 +77,7 @@ public class Publisher {
         ServerEmulator.getInstance().sendMessage(this.topic, m);
     }
 
+    public enum Strategy {
+        BUFFER, DROP, LATEST
+    }
 }

@@ -1,6 +1,8 @@
 package ru.itmo;
 
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.itmo.EasyFlow.Publisher;
 import ru.itmo.EasyFlow.Subscriber;
 import ru.itmo.EasyFlow.Topic;
@@ -9,6 +11,7 @@ import ru.itmo.FlowImpl.FlowSubscriber;
 import ru.itmo.MyFlow.HardFlowPublisher;
 import ru.itmo.MyFlow.HardFlowSubscriber;
 
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -24,9 +27,47 @@ public class Main {
 //        tryCustomizableFlowApi();
 //        tryMainFlowApi();
 
+//        tryProjectReactor();
 
 
+        System.out.println("End of program");
         Thread.sleep(100 * 1000);
+    }
+
+    private static void tryProjectReactor() {
+        ru.itmo.ProjectReactor.Topic lol = new ru.itmo.ProjectReactor.Topic("LOL");
+        ru.itmo.ProjectReactor.Publisher p = new ru.itmo.ProjectReactor.Publisher(lol);
+
+        List<ru.itmo.ProjectReactor.Subscriber> subscribers = new LinkedList<>();
+
+        // default is drop
+        p.onErrorReturn(p.getTopic())
+                .setDelay(Duration.ofSeconds(3))
+                .setTimeout(Duration.ofMillis(100))
+                .setStrategyDrop(topic -> {
+            log.error(topic + " caused Exception");
+            });
+
+        List<ru.itmo.ProjectReactor.Topic> currTopics = new LinkedList<>();
+        for (int j = 0; j<  1000000; j++){
+            currTopics.add(new ru.itmo.ProjectReactor.Topic(String.valueOf(j)));
+        }
+        p.setTopics(currTopics);
+
+        for (int j = 0; j<  1000000; j++) {
+            ru.itmo.ProjectReactor.Topic topic = currTopics.get(j);
+            ru.itmo.ProjectReactor.Subscriber subscriber = new ru.itmo.ProjectReactor.Subscriber("some sub " + j, topic);
+            p
+                .setDelay(Duration.ofMillis(1))
+                    .setTimeout(Duration.ofMillis(1))
+                    .onErrorReturn(new ru.itmo.ProjectReactor.Topic("FALLBACK"))
+                    .setStrategyDrop(t -> {
+                        System.out.println((t + " caused Exception"));
+                    })
+                    .subscribe(topic1 -> System.out.println(topic1.getName()));
+
+
+        }
     }
 
     private static void tryMainFlowApi() {
